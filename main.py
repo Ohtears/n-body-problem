@@ -1,14 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-
 import tkinter as tk
 from tkinter import simpledialog
 
 G = 6.6743e-11
-
 time_step = 1
-
 
 class Mass():
     def __init__(self, position, mass, initial_velocity):
@@ -25,17 +22,13 @@ class Mass():
         return G * other_mass.mass / (radius ** 3) * radius_vector
     
     def calculate_position(self, acceleration, time_step):
-
         followingvelocity = acceleration * time_step + self.velocity
-
         following_position = followingvelocity * time_step + self.position
-
         self.velocity = followingvelocity
         self.position = following_position
 
     def size(self):
-
-        return np.log10(self.mass)
+        return np.log10(self.mass) * 2  # Adjusted size scaling
 
 def get_input():
     root = tk.Tk()
@@ -56,9 +49,6 @@ mass1, mass2, initial_velocity1, initial_velocity2 = get_input()
 
 m1 = Mass([0.0, 0.0, 0.0], mass1, initial_velocity1)
 m2 = Mass([10.0, 10.0, 10.0], mass2, initial_velocity2)
-
-# m1 = Mass([-10.0, -10.0, 0.0], 5e10, [0.0, 0.0, 0.0])
-# m2 = Mass([-30.0, -30.0, -10.0], 15e10, [0.5, 0.0, 0.0])
 
 list_position_m1 = []
 list_position_m2 = []
@@ -82,6 +72,7 @@ list_position_m2 = np.array(list_position_m2)
 fig = plt.figure(figsize=(12,8))
 ax = fig.add_subplot(111, projection='3d')
 
+# Initial axis limits (will be updated dynamically)
 ax.set_xlim3d([-30.0, 30.0])
 ax.set_ylim3d([-30.0, 30.0])
 ax.set_zlim3d([-30.0, 30.0])
@@ -93,14 +84,34 @@ ax.set_zlabel('Z')
 point_m1, = ax.plot([], [], [], 'bo', markersize=m1.size())
 point_m2, = ax.plot([], [], [], 'ro', markersize=m2.size())
 
-trace_m1, = ax.plot([], [], [], 'b-', linewidth=1)
-trace_m2, = ax.plot([], [], [], 'r-', linewidth=1)
+trace_m1, = ax.plot([], [], [], 'b-', linewidth=1, alpha=0.5)
+trace_m2, = ax.plot([], [], [], 'r-', linewidth=1, alpha=0.5)
 
 def update(frame):
-    
     x1, y1, z1 = list_position_m1[frame]
     x2, y2, z2 = list_position_m2[frame]
-
+    
+    # Calculate center point between the two masses
+    center_x = (x1 + x2) / 2
+    center_y = (y1 + y2) / 2
+    center_z = (z1 + z2) / 2
+    
+    # Calculate maximum distance from center to either mass
+    max_dist = max(
+        np.sqrt((x1-center_x)**2 + (y1-center_y)**2 + (z1-center_z)**2),
+        np.sqrt((x2-center_x)**2 + (y2-center_y)**2 + (z2-center_z)**2)
+    )
+    
+    # Add some padding (20% of max_dist)
+    padding = max_dist * 1.2
+    if padding < 10:  # Minimum view size
+        padding = 10
+    
+    # Update axis limits to keep both masses visible
+    ax.set_xlim3d([center_x - padding, center_x + padding])
+    ax.set_ylim3d([center_y - padding, center_y + padding])
+    ax.set_zlim3d([center_z - padding, center_z + padding])
+    
     point_m1.set_data([x1], [y1])
     point_m1.set_3d_properties([z1])
 
@@ -118,3 +129,4 @@ def update(frame):
 ani = FuncAnimation(fig, update, frames=len(list_position_m1), interval=50, blit=False)
 
 plt.show()
+
